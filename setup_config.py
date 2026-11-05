@@ -16,9 +16,10 @@ ROOT = Path(__file__).resolve().parent
 DATA = Path(os.environ.get("HQ_DATA_DIR") or ROOT / "data")
 
 
-def duration(text, label):
+def duration(text, label, digits_are_minutes=False):
     try:
-        v = core.parse_pause(text) if text.strip().isdigit() else core.parse_duration(text)
+        # Sollzeit: reine Zahl = Stunden ("8" = 8 h); Pausenlänge: reine Zahl = Minuten ("60")
+        v = core.parse_pause(text) if digits_are_minutes and text.strip().isdigit() else core.parse_duration(text)
     except ValueError:
         sys.exit(f"{label}: '{text}' ist keine gültige Dauer (z. B. 8:00 oder 7,5)")
     if v is None:
@@ -45,7 +46,7 @@ def main():
             sys.exit(f"Pausenbeginn: '{a.pause_start}' ist keine Uhrzeit (z. B. 12:00)")
         minutes = core.parse_clock(a.pause_start)
         pause_start = f"{minutes // 60}:{minutes % 60:02d}"
-    pause_len = duration(a.pause_laenge, "Pausenlänge") if a.pause_laenge.strip() else None
+    pause_len = duration(a.pause_laenge, "Pausenlänge", True) if a.pause_laenge.strip() else None
     if bool(pause_start) != bool(pause_len):
         sys.exit("Pausenbeginn und Pausenlänge gehören zusammen: beide angeben oder beide leer lassen")
     free = [x.strip() for x in a.frei.replace("\n", ",").split(",") if x.strip()]
