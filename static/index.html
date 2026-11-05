@@ -1,0 +1,436 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Monatsübersicht HQ</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root { --grey:#f2f2f2; --head:#666; --yellow:#fffbe0; --sum:#d9dcff; --line:#999; --warn:#c0392b; }
+  * { box-sizing: border-box; }
+  body { margin:0; font:12px/1.3 Arial, Helvetica, sans-serif; color:#222; background:#fff; }
+  header { display:flex; align-items:center; gap:18px; padding:8px 14px; border-bottom:1px solid #ddd; background:#f7f7f7; }
+  header h1 { font-size:18px; font-weight:normal; color:#777; margin:0 10px 0 0; }
+  .nav { display:flex; align-items:center; gap:10px; margin:0 auto; }
+  .nav button { border:0; background:none; font-size:18px; cursor:pointer; color:#777; padding:2px 8px; }
+  .nav .month { width:190px; text-align:center; padding:7px; border:1px solid #ccc; background:#eee; font-size:14px; cursor:pointer; }
+  .btn { border:1px solid #bbb; background:#fff; padding:6px 12px; cursor:pointer; border-radius:3px; font-size:12px; }
+  .btn.primary { background:#3b6fd4; border-color:#3b6fd4; color:#fff; }
+  .btn:disabled { opacity:.5; cursor:default; }
+  #status { color:#888; min-width:110px; text-align:right; }
+  #status.err { color:var(--warn); }
+  .scroll { overflow:auto; padding-bottom:30px; }
+  table { border-collapse:collapse; table-layout:fixed; }
+  td, th { border:1px solid var(--line); padding:0; height:19px; text-align:center; position:relative; }
+  th.dayh { font-weight:normal; color:#1a1a7a; border:0; height:15px; font-size:11px; }
+  th.dayh.we { color:#555; } th.dayh.wd { color:#e08a00; }
+  th.dayn { background:var(--head); color:#fff; font-weight:bold; font-size:12px; }
+  th.dayn.today { outline:2px solid #2a9d2a; outline-offset:-2px; }
+  td.label { width:190px; text-align:left; padding:0 4px; background:var(--grey); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  th.label { width:190px; background:var(--head); color:#fff; text-align:left; padding:0 4px; }
+  td.c { width:40px; min-width:40px; background:#fff; }
+  td.c.wd { background:var(--yellow); }
+  tr.calc td.c { background:var(--grey); }
+  td.c.warn { background:#f8d7d3 !important; }
+  td.sum, th.sum { width:50px; background:var(--sum); }
+  th.sum { background:#fff; border:0; color:#000; font-size:11px; }
+  th.sumn { background:var(--head); color:#fff; }
+  td.c input { width:100%; height:100%; border:0; background:transparent; text-align:center; font:inherit; padding:0 1px; outline:none; }
+  td.c input:focus { background:#fff3c4; outline:2px solid #3b6fd4; outline-offset:-2px; z-index:2; position:relative; }
+  td.c input.bad { background:#f8d7d3; }
+  td.c input::placeholder { color:#999; }
+  td.c.hasnote::after { content:""; position:absolute; top:0; right:0; border-top:7px solid #e08a00; border-left:7px solid transparent; pointer-events:none; }
+  td.notecell button { border:0; background:none; cursor:pointer; padding:0; width:100%; height:17px; opacity:.55; }
+  td.notecell button::before { content:""; display:inline-block; width:9px; height:12px; border:1px solid #4a6fa5; background:linear-gradient(#fff 0 3px, #cfe0f5 3px); vertical-align:middle; }
+  td.notecell button.on { opacity:1; }
+  tr.group td.label { background:#d3d3d3; font-weight:bold; border-left:0; }
+  tr.group td.filler { border:0; }
+  tr.task td.label { background:#fff; padding-left:8px; }
+  tr.task td.label .lab { display:flex; align-items:center; gap:4px; }
+  tr.task td.label .lab > span:first-child { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; }
+  tr.task td.label .tools { flex:none; white-space:nowrap; }
+  tr.task td.label .tools button { border:0; background:none; cursor:pointer; color:#777; font-size:12px; padding:0 3px; }
+  tr.task td.label .tools button.on { color:#e08a00; }
+  .projbar { display:flex; gap:8px; align-items:center; padding:12px 14px 8px; }
+  .projbar select { padding:5px; min-width:260px; max-width:440px; }
+  .hint { color:#777; padding:0 14px 8px; }
+  .hint kbd { background:#eee; border:1px solid #ccc; border-radius:3px; padding:0 4px; }
+  .pop { position:fixed; z-index:20; background:#fff; border:1px solid #888; box-shadow:0 4px 14px rgba(0,0,0,.25); padding:8px; width:300px; }
+  .pop textarea { width:100%; height:80px; font:inherit; }
+  .pop .row { display:flex; justify-content:space-between; align-items:center; margin-top:6px; color:#777; }
+  dialog { border:1px solid #888; padding:16px 20px; max-width:880px; }
+  dialog::backdrop { background:rgba(0,0,0,.3); }
+  dialog h2 { margin:0 0 10px; font-size:16px; }
+  dialog label { display:block; margin:8px 0 2px; color:#555; }
+  dialog input, dialog textarea { width:100%; padding:5px; font:inherit; }
+  dialog .actions { margin-top:14px; display:flex; gap:8px; justify-content:flex-end; }
+  table.plan td, table.plan th { padding:3px 8px; height:auto; text-align:left; border:1px solid #ddd; }
+  .st-neu { color:#1a7f1a; font-weight:bold; } .st-geändert { color:#c77700; font-weight:bold; } .st-fehler { color:var(--warn); font-weight:bold; }
+  .msg { padding:8px 14px; background:#fff6d6; border-bottom:1px solid #e6d9a0; display:none; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Monatsübersicht HQ</h1>
+  <div class="nav">
+    <button id="prev" title="Vorheriger Monat">◀◀</button>
+    <div class="month" id="monthLabel" title="Klicken zum Wählen"></div>
+    <input type="month" id="monthPick" style="position:absolute; opacity:0; pointer-events:none;">
+    <button id="next" title="Nächster Monat">▶▶</button>
+  </div>
+  <span id="status"></span>
+  <button class="btn" id="importBtn" title="Liest die Reportings dieses Monats aus HQ und zeigt sie in der Monatsansicht">Diesen Monat aus HQ importieren</button>
+  <button class="btn" id="settingsBtn">Einstellungen</button>
+  <button class="btn primary" id="syncBtn">Übertrage in HQ</button>
+</header>
+<div class="msg" id="msg"></div>
+
+<div class="projbar">
+  <b>Projekt:</b>
+  <select id="projSel"></select>
+  <select id="taskSel"></select>
+  <button class="btn" id="addRow">Zeile hinzufügen</button>
+</div>
+<div class="hint">Zeit eintippen, z. B. <kbd>8:30</kbd> bei Beginn/Ende oder <kbd>1,75</kbd> bei Aufgaben. Text dahinter wird zur Notiz: <kbd>1,75 Sprint-Review</kbd>.
+  Notiz bearbeiten: <kbd>Alt</kbd>+<kbd>N</kbd> oder Doppelklick. <kbd>Enter</kbd> springt eine Zeile tiefer.</div>
+
+<div class="scroll"><table id="grid"></table></div>
+
+<dialog id="settings">
+  <h2>Einstellungen</h2>
+  <label>Sollzeit pro Arbeitstag (Mo–Fr), z. B. 8:00</label><input id="cfgSoll">
+  <label>Rundung der Arbeitszeit in Minuten</label><input id="cfgRound" type="number" min="1" max="60">
+  <label>Typische Pause: Beginn (leer = nur gesetzliche Pause, ArbZG §4), z. B. 12:00</label><input id="cfgPS" placeholder="12:00">
+  <label>Typische Pause: Länge, z. B. 1:00</label><input id="cfgPL" placeholder="1:00">
+  <label>Freie Tage: je Zeile ein Datum (JJJJ-MM-TT oder TT.MM.JJJJ) oder ein Wochentag, z. B. „Freitag“ (dann ist jeder Freitag frei)</label><textarea id="cfgFree" rows="4"></textarea>
+  <div class="actions"><button class="btn" id="cfgCancel">Abbrechen</button><button class="btn primary" id="cfgSave">Speichern</button></div>
+</dialog>
+
+<dialog id="planDlg">
+  <h2>Übertrage in HQ: Vorschau</h2>
+  <div id="planInfo" style="margin-bottom:8px;color:#555"></div>
+  <div style="max-height:380px; overflow:auto"><table class="plan" id="planTbl"></table></div>
+  <div id="planLog" style="margin-top:8px;color:#555;white-space:pre-wrap"></div>
+  <div class="actions"><button class="btn" id="planClose">Schließen</button><button class="btn" id="planDry" disabled>Probelauf (nichts speichern)</button><button class="btn primary" id="planGo" disabled>In HQ übertragen</button></div>
+</dialog>
+
+<script>
+"use strict";
+const $ = (s, el = document) => el.querySelector(s);
+const el = (tag, attrs = {}, ...kids) => { const e = document.createElement(tag); for (const [k, v] of Object.entries(attrs)) { if (k === 'class') e.className = v; else if (k.startsWith('on')) e.addEventListener(k.slice(2), v); else if (v !== null && v !== undefined) e.setAttribute(k, v); } kids.forEach(k => e.append(k)); return e; };
+const MONTHS = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+const S = { month: null, data: null, computed: null, projects: [], config: {}, today: '', timer: null, dirty: false };
+const rowKey = r => r.project + '|' + r.task;
+const cellKey = (r, iso) => rowKey(r) + '|' + iso;
+const projShort = p => p.split(' ')[0];
+const FREE_OK = /^(\d{4}-\d{2}-\d{2}|\d{1,2}\.\d{1,2}\.\d{4}|(mo(ntag)?|di(enstag)?|mi(ttwoch)?|do(nnerstag)?|fr(eitag)?|sa(mstag)?|so(nntag)?)\.?)$/i;
+const hm = m => m ? Math.floor(m / 60) + ':' + String(m % 60).padStart(2, '0') : '';
+
+function setStatus(t, err = false) { const s = $('#status'); s.textContent = t; s.className = err ? 'err' : ''; }
+async function api(path, body) {
+  const r = await fetch(path, body ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) } : {});
+  if (!r.ok) throw new Error('Server: ' + r.status); return r.json();
+}
+const monthShift = (m, d) => { const [y, mo] = m.split('-').map(Number); const dt = new Date(y, mo - 1 + d, 1); return dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0'); };
+
+async function loadMonth(month) {
+  await flush();
+  S.month = month;
+  const r = await api('/api/month/' + month);
+  S.data = r.data; S.data.days ||= {}; S.data.rows ||= []; S.data.cells ||= {};
+  if (!S.data.rows_init) {  // nur beim ersten Öffnen eines Monats: Zeilen aus dem Vormonat übernehmen
+    const prev = await api('/api/month/' + monthShift(month, -1));
+    if (prev.data.rows?.length) S.data.rows = prev.data.rows.map(x => ({ ...x }));
+    S.data.rows_init = true; S.dirty = true;   // danach gilt, was der Nutzer gelassen hat, auch eine leere Liste
+  }
+  S.computed = (await api('/api/month', { month, data: S.data })).computed;
+  S.dirty = false;
+  const [y, m] = month.split('-').map(Number);
+  $('#monthLabel').textContent = MONTHS[m - 1] + ' ' + y;
+  buildGrid(); applyComputed();
+}
+
+function save() { S.dirty = true; clearTimeout(S.timer); setStatus('…'); S.timer = setTimeout(flush, 350); }
+async function flush() {
+  clearTimeout(S.timer);
+  if (!S.dirty || !S.month) return;
+  S.dirty = false;
+  try { S.computed = (await api('/api/month', { month: S.month, data: S.data })).computed; applyComputed(); setStatus('gespeichert'); }
+  catch (e) { S.dirty = true; setStatus('Speichern fehlgeschlagen', true); }
+}
+
+function days() { return Object.keys(S.computed.days); }
+
+function buildGrid() {
+  const g = $('#grid'); g.replaceChildren();
+  const isos = days();
+  const head1 = el('tr', {}, el('th', { class: 'label', style: 'background:none;border:0' }));
+  const head2 = el('tr', {}, el('th', { class: 'label' }, 'Tag'));
+  for (const iso of isos) {
+    const d = S.computed.days[iso];
+    head1.append(el('th', { class: 'dayh ' + (d.workday ? 'wd' : 'we') }, d.weekday));
+    head2.append(el('th', { class: 'dayn' + (iso === S.today ? ' today' : '') }, String(d.day)));
+  }
+  head1.append(el('th', { class: 'sum' }, 'Summe')); head2.append(el('th', { class: 'sum sumn' }, 'Monat'));
+  g.append(head1, head2);
+
+  const upper = [
+    ['soll', 'Sollzeit', 'calc'], ['beginn', 'Beginn', 'in'], ['ende', 'Ende', 'in'],
+    ['pause', 'Pause', 'in'], ['arbeit', 'Gerundete Arbeitszeit', 'calc'], ['ueber', 'Überstunden', 'calc'],
+    ['verteilt', 'Verteilte Zeit', 'calc'], ['rest', 'Noch zu verteilende Zeit', 'calc'], ['note', 'Notizen', 'note'],
+  ];
+  for (const [field, label, kind] of upper) {
+    const tr = el('tr', { class: kind === 'calc' ? 'calc' : '' }, el('td', { class: 'label' }, label));
+    for (const iso of isos) {
+      const d = S.computed.days[iso];
+      const td = el('td', { class: 'c ' + (d.workday ? 'wd' : ''), 'data-f': field, 'data-iso': iso });
+      if (kind === 'in') {
+        const raw = S.data.days[iso] || {};
+        const inp = el('input', { 'data-day': iso, 'data-field': field, value: raw[field] || '', autocomplete: 'off', spellcheck: 'false' });
+        inp.addEventListener('change', onDayInput); inp.addEventListener('keydown', navKey);
+        td.append(inp);
+      } else if (kind === 'note') {
+        td.className += ' notecell';
+        td.append(el('button', { 'data-iso': iso, title: 'Tagesnotiz', onclick: e => openNote({ type: 'day', iso }, e.currentTarget) }));
+      }
+      tr.append(td);
+    }
+    tr.append(el('td', { class: 'sum', 'data-sum': field }));
+    g.append(tr);
+  }
+
+  const byProject = [...new Set(S.data.rows.map(r => r.project))];
+  for (const proj of byProject) {
+    g.append(el('tr', { class: 'group' }, el('td', { class: 'label', colspan: 1, title: proj }, projShort(proj) + ' ' + (proj.split(' ').slice(1, 4).join(' '))), el('td', { class: 'filler', colspan: isos.length + 1 })));
+    S.data.rows.filter(r => r.project === proj).forEach(r => {
+      const tools = el('span', { class: 'tools' },
+        el('button', { class: r.defnote ? 'on' : '', title: 'Standardnotiz für diese Aufgabe: ' + (r.defnote || '(leer)'), onclick: e => openNote({ type: 'task', row: r }, e.currentTarget) }, '✎'),
+        el('button', { title: 'Zeile entfernen', onclick: () => removeRow(r) }, '✕'));
+      const lab = el('td', { class: 'label', title: r.task }, el('div', { class: 'lab' }, el('span', {}, r.task), tools));
+      const tr = el('tr', { class: 'task' }, lab);
+      for (const iso of isos) {
+        const d = S.computed.days[iso];
+        const c = S.data.cells[cellKey(r, iso)] || {};
+        const inp = el('input', { 'data-row': rowKey(r), 'data-iso': iso, value: c.v || '', autocomplete: 'off', spellcheck: 'false' });
+        inp.addEventListener('change', onCellInput); inp.addEventListener('keydown', navKey); inp.addEventListener('dblclick', () => openNote({ type: 'cell', row: r, iso }, inp));
+        tr.append(el('td', { class: 'c ' + (d.workday ? 'wd' : ''), 'data-row': rowKey(r), 'data-iso': iso }, inp));
+      }
+      tr.append(el('td', { class: 'sum', 'data-rowsum': rowKey(r) }));
+      g.append(tr);
+    });
+  }
+}
+
+function applyComputed() {
+  const C = S.computed;
+  for (const iso of days()) {
+    const d = C.days[iso];
+    for (const f of ['soll', 'arbeit', 'ueber', 'verteilt', 'rest']) {
+      const td = $(`td[data-f="${f}"][data-iso="${iso}"]`); if (!td) continue;
+      td.textContent = d[f]; td.classList.toggle('warn', (f === 'rest' && d.warnings.some(w => w.startsWith('Mehr verteilt'))) || (f === 'arbeit' && d.warnings.length > 0 && !d.warnings.some(w => w.startsWith('Mehr verteilt'))));
+      td.title = (f === 'arbeit' || f === 'rest') ? d.warnings.join('\n') : '';
+    }
+    const pin = $(`input[data-day="${iso}"][data-field="pause"]`); if (pin) { pin.placeholder = d.pause_auto; pin.title = d.pause_auto ? 'Automatisch: ' + d.pause_auto + ' (ArbZG §4 bzw. deine Einstellung)' : ''; }
+    const ein = $(`input[data-day="${iso}"][data-field="ende"]`); if (ein) { ein.placeholder = d.ende_auto; ein.title = d.ende_auto ? 'Aus Beginn + verteilter Zeit berechnet: ' + d.ende_auto : ''; }
+    const nb = $(`td.notecell button[data-iso="${iso}"]`); if (nb) { const has = !!(S.data.days[iso] || {}).note; nb.classList.toggle('on', has); nb.title = has ? S.data.days[iso].note : 'Tagesnotiz'; }
+    for (const r of S.data.rows) {
+      const cell = d.cells[rowKey(r)]; const inp = $(`input[data-row="${CSS.escape(rowKey(r))}"][data-iso="${iso}"]`); if (!inp) continue;
+      inp.parentElement.classList.toggle('hasnote', cell.has_note);
+      const own = (S.data.cells[cellKey(r, iso)] || {}).note;
+      inp.title = (own || r.defnote || '') ? 'Notiz: ' + (own || r.defnote) : '';
+    }
+  }
+  for (const [k, v] of Object.entries(C.errors)) { const [t, a, b] = k.split('|'); const q = t === 'day' ? `input[data-day="${a}"][data-field="${b}"]` : `input[data-row="${CSS.escape(a)}"][data-iso="${b}"]`; $(q)?.classList.add('bad'); const i = $(q); if (i) i.title = v; }
+  document.querySelectorAll('input.bad').forEach(i => { const k = i.dataset.day ? `day|${i.dataset.day}|${i.dataset.field}` : `cell|${i.dataset.row}|${i.dataset.iso}`; if (!C.errors[k]) i.classList.remove('bad'); });
+  const T = C.totals;
+  $('td[data-sum="soll"]').textContent = T.soll; $('td[data-sum="arbeit"]').textContent = T.arbeit; $('td[data-sum="ueber"]').textContent = T.ueber;
+  $('td[data-sum="verteilt"]').textContent = T.verteilt; $('td[data-sum="rest"]').textContent = T.rest;
+  for (const r of S.data.rows) { const td = $(`td[data-rowsum="${CSS.escape(rowKey(r))}"]`); if (td) td.textContent = C.row_sums[rowKey(r)] || ''; }
+}
+/* Eingaben beim Verlassen des Feldes vereinheitlichen (spiegelt die Regeln in core.py) */
+function normClock(v) {
+  const t = v.trim().toLowerCase().replace(/\s*uhr$/, ''); if (!t) return '';
+  let m = t.match(/^(\d{1,2})[:.,](\d{2})$/) || t.match(/^(\d{1,2})(\d{2})$/) || t.match(/^(\d{1,2})()$/);
+  if (!m) return v.trim();
+  const h = +m[1], mi = +(m[2] || 0); if (h > 24 || mi > 59 || (h === 24 && mi)) return v.trim();
+  return h + ':' + String(mi).padStart(2, '0');
+}
+function normNumber(tok, isPause) {
+  if (/^\d+$/.test(tok)) {
+    if (isPause) { const m = +tok; return Math.floor(m / 60) + ':' + String(m % 60).padStart(2, '0'); }
+    if (tok.length === 1) return tok;
+    return (tok[0] + ',' + tok.slice(1)).replace(/,?0+$/, '');
+  }
+  if (/^\d*[.,]\d+$/.test(tok)) { const [a, b] = tok.replace('.', ',').split(','); return (a || '0') + ',' + b.replace(/0+$/, '') || (a || '0'); }
+  return tok;
+}
+function normDur(v, isPause = false) {
+  const t = v.trim(); if (!t) return '';
+  const [tok, note] = splitNote(t);
+  let n = normNumber(tok, isPause); if (n.endsWith(',')) n = n.slice(0, -1);
+  return n + (note ? ' ' + note : '');
+}
+const hasUnit = v => /[a-zA-Z:]/.test(v);   // Eingaben wie "1h 45m" oder "1:45 Text" nicht überschreiben, solange sie so stehen
+
+function onDayInput(e) {
+  const i = e.target; const iso = i.dataset.day; const f = i.dataset.field;
+  i.value = f === 'pause' ? normDur(i.value, true) : normClock(i.value);
+  (S.data.days[iso] ||= {})[f] = i.value; save();
+}
+function onCellInput(e) {
+  const i = e.target; const key = i.dataset.row + '|' + i.dataset.iso;
+  const v = normDur(i.value); i.value = v;
+  const cur = S.data.cells[key] || {};
+  const noteInline = splitNote(v)[1];
+  if (!v) delete S.data.cells[key]; else S.data.cells[key] = { v, note: noteInline ? '' : (cur.note || '') };
+  save();
+}
+function splitNote(t) { const m = t.match(/^(\d+(?:[.,]\d+)?(?::\d{2})?(?:\s*h(?:\s*\d+\s*m(?:in)?)?|\s*m(?:in)?)?)(?:\s+(.*))?$/i); return m ? [m[1], m[2] || ''] : [t, '']; }
+
+function navKey(e) {
+  const i = e.target;
+  if (e.altKey && e.key.toLowerCase() === 'n') { e.preventDefault(); const t = i.dataset.row ? { type: 'cell', row: S.data.rows.find(r => rowKey(r) === i.dataset.row), iso: i.dataset.iso } : { type: 'day', iso: i.dataset.day }; return openNote(t, i); }
+  const dir = e.key === 'Enter' || e.key === 'ArrowDown' ? 1 : e.key === 'ArrowUp' ? -1 : 0;
+  if (!dir) return;
+  e.preventDefault(); i.dispatchEvent(new Event('change'));
+  const iso = i.dataset.iso || i.dataset.day;
+  const col = [...document.querySelectorAll('#grid input')].filter(x => (x.dataset.iso || x.dataset.day) === iso);
+  const n = col[col.indexOf(i) + dir]; if (n) { n.focus(); n.select(); }
+}
+
+function removeRow(r) {
+  const used = Object.keys(S.data.cells).some(k => k.startsWith(rowKey(r) + '|'));
+  if (used && !confirm('Zeile enthält Eingaben in diesem Monat. Trotzdem entfernen?')) return;
+  S.data.rows = S.data.rows.filter(x => rowKey(x) !== rowKey(r));
+  for (const k of Object.keys(S.data.cells)) if (k.startsWith(rowKey(r) + '|')) delete S.data.cells[k];
+  save(); flush().then(buildGrid).then(applyComputed);
+}
+
+/* ---- Projekt/Aufgabe ---- */
+function fillProjects() {
+  const ps = $('#projSel'); ps.replaceChildren(...S.projects.map((p, i) => el('option', { value: i }, p.project)));
+  fillTasks(); ps.addEventListener('change', fillTasks);
+}
+function fillTasks() { const p = S.projects[+$('#projSel').value]; $('#taskSel').replaceChildren(...(p ? p.tasks : []).map(t => el('option', { value: t.name }, `${t.name} (${t.ist}/${t.soll}h)`))); }
+$('#addRow').addEventListener('click', async () => {
+  const p = S.projects[+$('#projSel').value]; const task = $('#taskSel').value; if (!p || !task) return;
+  if (S.data.rows.some(r => r.project === p.project && r.task === task)) return setStatus('Zeile gibt es schon', true);
+  S.data.rows.push({ project: p.project, task, defnote: '' });
+  S.data.rows.sort((a, b) => S.projects.findIndex(x => x.project === a.project) - S.projects.findIndex(x => x.project === b.project));
+  S.dirty = true; await flush(); buildGrid(); applyComputed();
+});
+
+/* ---- Notizen: kleines Popover, Enter speichert, Esc schließt ---- */
+let pop = null;
+function closePop() { pop?.remove(); pop = null; }
+function openNote(target, anchor) {
+  closePop();
+  const get = () => target.type === 'day' ? (S.data.days[target.iso] || {}).note || '' : target.type === 'task' ? target.row.defnote || '' : (S.data.cells[cellKey(target.row, target.iso)] || {}).note || splitNote((S.data.cells[cellKey(target.row, target.iso)] || {}).v || '')[1];
+  const title = target.type === 'day' ? 'Tagesnotiz ' + target.iso : target.type === 'task' ? 'Standardnotiz: ' + target.row.task : 'Notiz ' + target.row.task + ' · ' + target.iso;
+  const ta = el('textarea', { placeholder: 'Notiz … (Enter speichert, Shift+Enter neue Zeile)' }); ta.value = get();
+  pop = el('div', { class: 'pop' }, el('b', {}, title), ta, el('div', { class: 'row' }, el('span', {}, 'Esc = verwerfen'), el('span', {}, target.type === 'task' ? 'gilt für alle Einträge ohne eigene Notiz' : '')));
+  const r = anchor.getBoundingClientRect(); document.body.append(pop);
+  pop.style.left = Math.min(r.left, innerWidth - 320) + 'px'; pop.style.top = Math.min(r.bottom + 4, innerHeight - 170) + 'px';
+  ta.focus(); ta.select();
+  ta.addEventListener('keydown', ev => {
+    if (ev.key === 'Escape') { closePop(); anchor.focus?.(); }
+    if (ev.key === 'Enter' && !ev.shiftKey) {
+      ev.preventDefault(); const v = ta.value.trim();
+      if (target.type === 'day') (S.data.days[target.iso] ||= {}).note = v;
+      else if (target.type === 'task') { target.row.defnote = v; }
+      else { const k = cellKey(target.row, target.iso); const c = S.data.cells[k] || { v: '' }; const [dur] = splitNote(c.v || ''); c.v = dur; c.note = v; if (dur || v) S.data.cells[k] = c; if (!dur && !v) delete S.data.cells[k]; const inp = $(`input[data-row="${CSS.escape(rowKey(target.row))}"][data-iso="${target.iso}"]`); if (inp) inp.value = dur; }
+      closePop(); save(); if (target.type === 'task') flush().then(buildGrid).then(applyComputed);
+      anchor.focus?.();
+    }
+  });
+  setTimeout(() => document.addEventListener('mousedown', function h(ev) { if (pop && !pop.contains(ev.target)) { closePop(); } document.removeEventListener('mousedown', h); }), 0);
+}
+
+/* ---- Einstellungen ---- */
+$('#settingsBtn').addEventListener('click', () => {
+  const c = S.config; $('#cfgSoll').value = hm(c.soll_min); $('#cfgRound').value = c.round_min; $('#cfgPS').value = c.pause_start || '';
+  $('#cfgPL').value = c.pause_len_min ? hm(c.pause_len_min) : ''; $('#cfgFree').value = (c.free_days || []).join('\n'); $('#settings').showModal();
+});
+$('#cfgCancel').addEventListener('click', () => $('#settings').close());
+$('#cfgSave').addEventListener('click', async () => {
+  const dur = t => { const m = t.trim().match(/^(\d+):(\d{2})$/) ; if (m) return +m[1] * 60 + +m[2]; const n = parseFloat(t.replace(',', '.')); return isNaN(n) ? null : Math.round(n * 60); };
+  const cfg = { soll_min: dur($('#cfgSoll').value) ?? 480, round_min: +$('#cfgRound').value || 15, pause_start: $('#cfgPS').value.trim() || null,
+    pause_len_min: $('#cfgPL').value.trim() ? dur($('#cfgPL').value) : null, free_days: $('#cfgFree').value.split(/[\n,;]+/).map(x => x.trim()).filter(x => FREE_OK.test(x)) };
+  S.config = (await api('/api/config', cfg)).config; $('#settings').close(); S.dirty = true; await flush(); buildGrid(); applyComputed();
+});
+
+/* ---- Übertrage in HQ: Monat aus HQ einlesen, abgleichen, auswählen, übertragen ---- */
+const PLAN = { rows: [] };
+function setPlanBusy(busy, text = '') { $('#planGo').disabled = $('#planDry').disabled = busy; $('#planInfo').textContent = text; }
+async function showPlan() {
+  const { plan, baseline } = await api('/api/plan', { month: S.month });
+  PLAN.rows = plan;
+  const t = $('#planTbl');
+  t.replaceChildren(el('tr', {}, ...['', 'Status', 'Datum', 'Projekt', 'Aufgabe', 'Start', 'Ende', 'Dauer', 'Pause', 'Notiz', 'in HQ jetzt'].map(h => el('th', {}, h))));
+  for (const p of plan) {
+    const act = p.status === 'neu' || p.status === 'geändert';
+    const cb = el('input', { type: 'checkbox', 'data-key': p.key }); cb.checked = act; cb.disabled = !act;
+    t.append(el('tr', {}, el('td', {}, act ? cb : ''), el('td', { class: 'st-' + p.status }, p.status), el('td', {}, p.date), el('td', {}, p.project ? projShort(p.project) : ''),
+      el('td', {}, p.task || p.reason || ''), el('td', {}, p.start || ''), el('td', {}, p.end || ''), el('td', {}, p.dauer || ''), el('td', {}, p.pause || ''), el('td', {}, p.note || ''), el('td', {}, p.hq || '')));
+  }
+  const n = s => plan.filter(p => p.status === s).length;
+  const act = n('neu') + n('geändert');
+  setPlanBusy(act === 0, `Stand HQ vom ${baseline ? baseline.replace('T', ' ') : '(nie eingelesen)'}: ${n('neu')} neu, ${n('geändert')} geändert (wird in HQ bearbeitet), ${n('unverändert')} unverändert, ${n('nur in HQ')} nur in HQ (bleiben unberührt), ${n('mehrdeutig')} mehrdeutig (werden übersprungen), ${n('fehler')} Fehler. Es wird nie etwas gelöscht.`);
+  $('#planGo').textContent = 'In HQ übertragen';
+}
+$('#syncBtn').addEventListener('click', async () => {
+  await flush();
+  $('#planTbl').replaceChildren(); $('#planLog').textContent = ''; $('#planDlg').showModal();
+  setPlanBusy(true, 'Lese den Monat aus HQ ein (dauert etwa eine halbe Minute) …');
+  try {
+    const r = await api('/api/hq/import', { month: S.month });
+    if (!r.ok) { setPlanBusy(true, 'HQ-Import fehlgeschlagen.'); $('#planLog').textContent = r.log || r.message || ''; return; }
+    await showPlan();
+  } catch (e) { setPlanBusy(true, 'Fehler: ' + e.message); }
+});
+async function runSync(save) {
+  const keys = [...document.querySelectorAll('#planTbl input[type=checkbox]:checked')].map(c => c.dataset.key);
+  if (!keys.length) return;
+  if (save && !confirm(`${keys.length} Reporting(s) in HQ speichern?\nNeue werden angelegt, geänderte in HQ bearbeitet. Gelöscht wird nichts.`)) return;
+  setPlanBusy(true, save ? 'Übertrage nach HQ … (pro Eintrag etwa 20 Sekunden)' : 'Probelauf läuft … (nichts wird gespeichert)');
+  try {
+    const r = await api('/api/hq/sync', { month: S.month, keys, save });
+    const lines = (r.results || []).map(x => (x.ok ? '✔ ' : '✘ ') + x.entry + (x.ok ? (x.saved ? ' gespeichert' : ' (Probelauf) ' + JSON.stringify(x.dialog)) : ' – ' + x.error));
+    $('#planLog').textContent = (r.message ? r.message + '\n' : '') + lines.join('\n') + (r.ok ? '' : '\n\nHinweis: ' + (r.log || '').slice(-400));
+    if (save) { await showPlan(); } else { setPlanBusy(false, 'Probelauf beendet, nichts wurde gespeichert.'); }
+  } catch (e) { setPlanBusy(false, 'Fehler: ' + e.message); }
+}
+$('#planGo').addEventListener('click', () => runSync(true));
+$('#planDry').addEventListener('click', () => runSync(false));
+$('#planClose').addEventListener('click', () => $('#planDlg').close());
+
+/* ---- Diesen Monat aus HQ importieren ---- */
+$('#importBtn').addEventListener('click', async () => {
+  await flush();
+  const btn = $('#importBtn'); btn.disabled = true; setStatus('Lese HQ … (etwa eine halbe Minute)');
+  try {
+    let r = await api('/api/hq/import-month', { month: S.month });
+    if (!r.ok) { setStatus('HQ-Import fehlgeschlagen', true); alert('HQ-Import fehlgeschlagen:\n' + (r.message || r.log || '').slice(-500)); return; }
+    let skipped = r.skipped_days.length;
+    if (skipped && confirm(`${skipped} Tag(e) haben schon eigene Eingaben (${r.skipped_days.map(d => d.slice(8) + '.').join(' ')}).\nMit dem Stand aus HQ ersetzen?\nAbbrechen = diese Tage unverändert lassen.`)) {
+      r = await api('/api/hq/import-month', { month: S.month, reuse: true, overwrite: true }); skipped = r.skipped_days.length;
+    }
+    await loadMonth(S.month);
+    setStatus(r.entries ? `${r.imported_days.length} Tag(e) aus HQ übernommen (${r.entries} Reportings)${r.rows_added ? ', ' + r.rows_added + ' neue Zeile(n)' : ''}${skipped ? ', ' + skipped + ' Tag(e) unverändert' : ''}` : 'In HQ gibt es für diesen Monat keine Reportings');
+  } catch (e) { setStatus('Fehler: ' + e.message, true); }
+  finally { btn.disabled = false; }
+});
+
+/* ---- Monatsnavigation ---- */
+$('#prev').addEventListener('click', () => loadMonth(monthShift(S.month, -1)));
+$('#next').addEventListener('click', () => loadMonth(monthShift(S.month, +1)));
+$('#monthLabel').addEventListener('click', () => { const p = $('#monthPick'); p.value = S.month; p.showPicker?.(); });
+$('#monthPick').addEventListener('change', e => e.target.value && loadMonth(e.target.value));
+window.addEventListener('beforeunload', () => { if (S.dirty) navigator.sendBeacon?.('/api/month', new Blob([JSON.stringify({ month: S.month, data: S.data })], { type: 'application/json' })); });
+
+(async function init() {
+  const b = await api('/api/bootstrap'); S.projects = b.projects; S.config = b.config; S.today = b.today;
+  fillProjects(); await loadMonth(S.today.slice(0, 7));
+})().catch(e => setStatus('Fehler: ' + e.message, true));
+</script>
+</body>
+</html>
