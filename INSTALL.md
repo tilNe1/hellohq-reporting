@@ -22,7 +22,7 @@ Den Ordner `hellohq-reporting` per Git oder ZIP auf den neuen Computer legen. **
 Das Programm erledigt in 7 Schritten:
 1. prüft Python und `venv`
 2. legt `.venv` an und installiert die Pakete (`requirements.txt`)
-3. lädt den Browser (Chromium, rund 150 MB) in `.browsers/`
+3. lädt den Browser (Chromium, rund 150 MB) in `.browsers/` und prüft, dass er startet. Der Browser gilt nur für das Betriebssystem, auf dem installiert wurde: Wird der Ordner unter Windows und WSL/Linux gemeinsam genutzt, liegen beide Fassungen nebeneinander. Fehlt eine beim Start, lädt die Anwendung sie einmal automatisch nach.
 4. Linux: ergänzt fehlende Systembibliotheken (mit `sudo` oder ohne Root nach `.libs/`); Windows und macOS brauchen das nicht
 5. **fragt die Standardwerte ab**: Sollzeit, Rundung, typische Pause (Beginn und Länge), freie Tage (Wochentage oder Daten), HQ-Adresse
 6. **legt die Zugangsdatei an und wartet, bis du sie gespeichert hast**: `~/.config/hellohq/credentials.env` (Windows: `C:\Users\<Name>\.config\hellohq\credentials.env`). Dort trägst du `HQ_USER=` und `HQ_PASSWORD=` ein. Das Passwort erscheint nie im Terminal. Die Datei ist nur für dich lesbar.

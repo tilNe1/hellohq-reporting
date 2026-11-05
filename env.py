@@ -22,3 +22,20 @@ for _stream in (sys.stdout, sys.stderr):
         _stream.reconfigure(encoding="utf-8", errors="replace")
     except (AttributeError, ValueError):
         pass
+
+
+def launch_chromium(pw, **kw):
+    """Startet Chromium. Fehlt der Browser für dieses Betriebssystem (z. B. .browsers wurde unter Linux/WSL angelegt,
+    gestartet wird unter Windows), wird er einmal automatisch nachinstalliert und der Start wiederholt."""
+    try:
+        return pw.chromium.launch(**kw)
+    except Exception as e:  # playwright._impl._errors.Error
+        if "Executable doesn't exist" not in str(e):
+            raise
+        import subprocess
+        print("Browser für dieses System fehlt, installiere Chromium (einmalig, rund 150 MB) …", flush=True)
+        r = subprocess.run([sys.executable, "-m", "playwright", "install", "chromium"], env=os.environ)
+        if r.returncode:
+            raise RuntimeError("Chromium konnte nicht installiert werden. Von Hand: "
+                               f'"{sys.executable}" -m playwright install chromium') from e
+        return pw.chromium.launch(**kw)

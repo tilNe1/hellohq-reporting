@@ -3,6 +3,7 @@
 Speichert NICHTS: schließt den Dialog danach mit Escape. Zugangsdaten werden nie ausgegeben."""
 import sys
 
+from env import launch_chromium
 from playwright.sync_api import TimeoutError as PWTimeout
 from playwright.sync_api import sync_playwright
 
@@ -49,7 +50,7 @@ def main():
     OUT.mkdir(exist_ok=True)
     user, password = load_credentials()
     with sync_playwright() as pw:
-        browser = pw.chromium.launch(proxy=proxy_from_env())
+        browser = launch_chromium(pw, proxy=proxy_from_env())
         page = browser.new_context(locale="de-DE", viewport={"width": 1400, "height": 900}).new_page()
         login(page, user, password)
 

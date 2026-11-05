@@ -5,6 +5,7 @@ import json
 import re
 from datetime import datetime
 
+from env import launch_chromium
 from playwright.sync_api import sync_playwright
 
 from hq_explore_new import login
@@ -26,7 +27,7 @@ def main():
     DATA.mkdir(exist_ok=True)
     user, password = load_credentials()
     with sync_playwright() as pw:
-        browser = pw.chromium.launch(proxy=proxy_from_env())
+        browser = launch_chromium(pw, proxy=proxy_from_env())
         page = browser.new_context(locale="de-DE", viewport={"width": 1400, "height": 1000}).new_page()
         login(page, user, password)
         def open_dialog():

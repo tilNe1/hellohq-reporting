@@ -11,7 +11,7 @@ import argparse
 import os
 import sys
 
-import env  # noqa: F401  (Browser-Pfad, UTF-8; muss vor playwright kommen)
+from env import launch_chromium  # noqa: F401  (Browser-Pfad, UTF-8; muss vor playwright kommen)
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
 
@@ -117,7 +117,7 @@ def main():
     creds = None if args.recon else load_credentials()
 
     with sync_playwright() as pw:
-        browser = pw.chromium.launch(headless=not args.headed, proxy=proxy_from_env())
+        browser = launch_chromium(pw, headless=not args.headed, proxy=proxy_from_env())
         page = browser.new_context(locale="de-DE", viewport={"width": 1280, "height": 900}).new_page()
         failed_hosts = {}
 

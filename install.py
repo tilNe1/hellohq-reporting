@@ -127,7 +127,12 @@ def step_browser():
     r = run([VENV_PY, "-m", "playwright", "install", "chromium"], capture=False)
     if r.returncode:
         die("Chromium konnte nicht geladen werden (Netzwerk?)")
-    ok("Chromium installiert")
+    # Prüfen, ob der Browser für DIESES Betriebssystem wirklich startet (.browsers kann von Linux/WSL stammen)
+    chk = run([VENV_PY, "-c", "import env; from playwright.sync_api import sync_playwright as s\n"
+               "with s() as p:\n b = env.launch_chromium(p); b.close()"])
+    if chk.returncode:
+        die("Chromium ist installiert, startet aber nicht:\n" + (chk.stderr or chk.stdout)[-600:])
+    ok("Chromium installiert und startet")
 
 
 # ---------------------------------------------------------------- 4. Systembibliotheken (nur Linux)

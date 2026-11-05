@@ -6,6 +6,7 @@ und stellt ihn am Ende wieder her.
 import re
 from contextlib import contextmanager
 
+from env import launch_chromium
 from playwright.sync_api import TimeoutError as PWTimeout
 from playwright.sync_api import sync_playwright
 
@@ -21,7 +22,7 @@ def hq_session(headless=True):
     """Meldet sich an und liefert die Seite 'Reportings'."""
     user, password = load_credentials()
     with sync_playwright() as pw:
-        browser = pw.chromium.launch(proxy=proxy_from_env(), headless=headless)
+        browser = launch_chromium(pw, proxy=proxy_from_env(), headless=headless)
         page = browser.new_context(locale="de-DE", viewport={"width": 1600, "height": 1100}).new_page()
         login(page, user, password)
         page.wait_for_timeout(1500)
