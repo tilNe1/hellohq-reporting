@@ -24,6 +24,7 @@ ROOT = Path(__file__).resolve().parent
 IS_WIN = os.name == "nt"
 IS_MAC = sys.platform == "darwin"
 IS_LINUX = sys.platform.startswith("linux")
+BROWSERS = ROOT / ".browsers" / ("windows" if IS_WIN else "macos" if sys.platform == "darwin" else "linux")   # je Betriebssystem getrennt
 VENV_PY = ROOT / ".venv" / ("Scripts/python.exe" if IS_WIN else "bin/python")
 CRED_DIR = Path(os.environ.get("HQ_CRED_DIR") or Path.home() / ".config" / "hellohq")
 CRED = CRED_DIR / "credentials.env"
@@ -59,7 +60,7 @@ def die(text):
 
 def run(cmd, **kw):
     """Führt einen Befehl im Projektordner aus; Rückgabe: CompletedProcess (Ausgabe als Text)."""
-    env = {**os.environ, "PLAYWRIGHT_BROWSERS_PATH": str(ROOT / ".browsers"), "PYTHONUTF8": "1", **kw.pop("env", {})}
+    env = {**os.environ, "PLAYWRIGHT_BROWSERS_PATH": str(BROWSERS), "PYTHONUTF8": "1", **kw.pop("env", {})}
     return subprocess.run([str(c) for c in cmd], cwd=ROOT, env=env, capture_output=kw.pop("capture", True), text=True,
                           encoding="utf-8", errors="replace", **kw)
 
@@ -127,7 +128,7 @@ def step_browser():
     r = run([VENV_PY, "-m", "playwright", "install", "chromium"], capture=False)
     if r.returncode:
         die("Chromium konnte nicht geladen werden (Netzwerk?)")
-    # Prüfen, ob der Browser für DIESES Betriebssystem wirklich startet (.browsers kann von Linux/WSL stammen)
+    # Prüfen, ob der Browser für DIESES Betriebssystem wirklich startet (.browsers ist je Betriebssystem getrennt)
     chk = run([VENV_PY, "-c", "import env; from playwright.sync_api import sync_playwright as s\n"
                "with s() as p:\n b = env.launch_chromium(p); b.close()"])
     if chk.returncode:
@@ -137,7 +138,7 @@ def step_browser():
 
 # ---------------------------------------------------------------- 4. Systembibliotheken (nur Linux)
 def chrome_binary():
-    hits = sorted((ROOT / ".browsers").glob("chromium_headless_shell-*/chrome-headless-shell-linux64/chrome-headless-shell"))
+    hits = sorted(BROWSERS.glob("chromium_headless_shell-*/chrome-headless-shell-linux64/chrome-headless-shell"))
     return hits[0] if hits else None
 
 

@@ -2,4 +2,4 @@ playwright==1.64.1
 # Hinweis: pip lädt nur das Python-Paket, nicht den Browser. Chromium kommt per
 #   python -m playwright install chromium
 # (macht install.py; fehlt er beim Start, installiert env.launch_chromium ihn automatisch nach).
-# .browsers/ gilt nur für das Betriebssystem, auf dem installiert wurde (Windows, Linux/WSL und macOS getrennt).
+# Die Browser liegen je Betriebssystem getrennt in .browsers/windows, .browsers/linux, .browsers/macos.

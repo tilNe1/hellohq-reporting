@@ -1,6 +1,7 @@
 """Gemeinsame Umgebung für alle HQ-Skripte (Windows, macOS, Linux). Wird vor playwright importiert.
 
-- Browser liegen im Projektordner (.browsers), unabhängig vom Benutzerverzeichnis.
+- Browser liegen im Projektordner, je Betriebssystem getrennt (.browsers/windows, .browsers/linux, .browsers/macos). Playwright legt
+  sonst nur einen Marker pro Version an und hielte einen Linux-Browser fälschlich für den Windows-Browser (Ordner wird dann gemeinsam genutzt, z. B. Windows + WSL).
 - Linux ohne Root: fehlende Systembibliotheken liegen in .libs/root (siehe install.py).
 - Ausgabe immer UTF-8 (Windows-Konsolen nutzen sonst cp1252 und stürzen bei Umlauten ab).
 """
@@ -9,7 +10,8 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
-os.environ.setdefault("PLAYWRIGHT_BROWSERS_PATH", str(ROOT / ".browsers"))
+OS_NAME = {"win32": "windows", "darwin": "macos"}.get(sys.platform, "linux")
+os.environ.setdefault("PLAYWRIGHT_BROWSERS_PATH", str(ROOT / ".browsers" / OS_NAME))
 os.environ.setdefault("PYTHONUTF8", "1")  # gilt für gestartete Kindprozesse
 
 if sys.platform.startswith("linux"):
@@ -25,7 +27,7 @@ for _stream in (sys.stdout, sys.stderr):
 
 
 def launch_chromium(pw, **kw):
-    """Startet Chromium. Fehlt der Browser für dieses Betriebssystem (z. B. .browsers wurde unter Linux/WSL angelegt,
+    """Startet Chromium. Fehlt der Browser für dieses Betriebssystem (z. B. Browser fehlt nach dem Kopieren des Projekts,
     gestartet wird unter Windows), wird er einmal automatisch nachinstalliert und der Start wiederholt."""
     try:
         return pw.chromium.launch(**kw)
