@@ -326,8 +326,29 @@ function openNote(target, anchor) {
   closePop();
   const get = () => target.type === 'day' ? (S.data.days[target.iso] || {}).note || '' : target.type === 'task' ? target.row.defnote || '' : (S.data.cells[cellKey(target.row, target.iso)] || {}).note || splitNote((S.data.cells[cellKey(target.row, target.iso)] || {}).v || '')[1];
   const title = target.type === 'day' ? 'Tagesnotiz ' + target.iso : target.type === 'task' ? 'Standardnotiz: ' + target.row.task : 'Notiz ' + target.row.task + ' · ' + target.iso;
-  const ta = el('textarea', { placeholder: 'Notiz … (Enter speichert, Shift+Enter neue Zeile)' }); ta.value = get();
-  pop = el('div', { class: 'pop' }, el('b', {}, title), ta, el('div', { class: 'row' }, el('span', {}, 'Esc = verwerfen'), el('span', {}, target.type === 'task' ? 'gilt für alle Einträge ohne eigene Notiz' : '')));
+  const ta = el('textarea', { placeholder: 'Bemerkung: 1–2 Sätze, was in dieser Zeit umgesetzt wurde (Enter speichert, Shift+Enter neue Zeile)' }); ta.value = get();
+  const prev = el('button', { type: 'button', title: 'Übernimmt die Beschreibung der letzten Buchung dieser Aufgabe (lokal oder aus HQ)' }, 'Beschreibung aus vorheriger Buchung übernehmen');
+  const msg = el('div', { class: 'row' });
+  prev.addEventListener('click', async () => {
+    await flush();
+    const r = await api('/api/lastnote', { project: target.row?.project, task: target.row?.task, before: target.type === 'cell' ? target.iso : '' });
+    if (!r.found) { msg.textContent = 'Keine frühere Buchung mit Beschreibung gefunden.'; return; }
+    ta.value = r.note; ta.focus(); msg.textContent = `Übernommen von ${r.date} (${r.source}). Enter speichert.`;
+  });
+  const all = el('button', { type: 'button', title: 'Setzt diesen Text als Bemerkung bei jeder Buchung dieses Tages; sie wird pro Buchung nach HQ übertragen', style: 'margin-top:6px;width:100%' }, 'Für alle heutigen Buchungen übernehmen');
+  all.addEventListener('click', async () => {
+    const v = ta.value.trim(); if (!v) { msg.textContent = 'Erst einen Text eingeben.'; return; }
+    let n = 0;
+    for (const r of S.data.rows) {
+      const k = cellKey(r, target.iso); const c = S.data.cells[k]; if (!c || !splitNote(c.v || '')[0]) continue;
+      const [dur] = splitNote(c.v); S.data.cells[k] = { v: dur, note: v }; n++;
+      const inp = $(`input[data-row="${CSS.escape(rowKey(r))}"][data-iso="${target.iso}"]`); if (inp) inp.value = dur;
+    }
+    (S.data.days[target.iso] ||= {}).note = v; save(); await flush(); applyComputed();
+    msg.textContent = n ? `Bemerkung bei ${n} Buchung(en) gesetzt und Tagesnotiz gespeichert.` : 'Keine Buchungen an diesem Tag; Tagesnotiz gespeichert.';
+  });
+  if (target.type !== 'day') prev.style.cssText = 'margin-top:6px;width:100%';
+  pop = el('div', { class: 'pop' }, el('b', {}, title), ta, el('div', { class: 'row' }, el('span', {}, 'Esc = verwerfen'), el('span', {}, target.type === 'task' ? 'gilt für alle Einträge ohne eigene Notiz' : '')), ...(target.type === 'day' ? [all, msg] : [prev, msg]));
   const r = anchor.getBoundingClientRect(); document.body.append(pop);
   pop.style.left = Math.min(r.left, innerWidth - 320) + 'px'; pop.style.top = Math.min(r.bottom + 4, innerHeight - 170) + 'px';
   ta.focus(); ta.select();

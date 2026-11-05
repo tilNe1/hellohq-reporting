@@ -14,6 +14,7 @@ Die Oberfläche folgt dem Aufbau klassischer Monatsraster (Tage als Spalten, obe
 - **Verteilung** der Tagesarbeitszeit auf Aufgaben mit Anzeige „Noch zu verteilende Zeit“
 - **Gerundete Arbeitszeit, Soll und Überstunden** (Sollzeit pro Arbeitstag, Rundung und freie Tage/Wochentage einstellbar)
 - **Notizen ohne Umweg:** Text hinter die Zeit tippen (`1,75 Sprint-Review`), `Alt`+`N` oder Doppelklick für ein Notizfeld, Standardnotiz pro Aufgabe, Tagesnotiz
+- **Bemerkung pro Buchung:** Jede Buchung (Aufgabe und Tag) hat eine Bemerkung von 1–2 Sätzen, was in der Zeit umgesetzt wurde. Sie wird als Beschreibung des jeweiligen Reportings nach HQ übertragen. Im Notizfenster übernimmt **„Beschreibung aus vorheriger Buchung übernehmen“** den Text der letzten früheren Buchung derselben Aufgabe (lokal oder aus dem eingelesenen HQ-Stand), die Tagesnotiz hat **„Für alle heutigen Buchungen übernehmen“**.
 - **Projekt- und Aufgabenauswahl** aus den Daten deiner HQ-Instanz
 - **Import:** „Diesen Monat aus HQ importieren“ zeigt bestehende Reportings im Raster
 - **Übertragung:** „Übertrage in HQ“ liest den Monat frisch ein, gleicht ab und überträgt nur **neue oder geänderte** Einträge; Probelauf und Bestätigung vor dem Speichern, **gelöscht wird nie etwas**

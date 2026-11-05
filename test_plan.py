@@ -126,3 +126,12 @@ class Import(unittest.TestCase):
 
     def test_viertelstunden_schreibweise(self):
         self.assertEqual([server.fmt_dec(m) for m in (105, 30, 480, 45, 20, 90)], ["1,75", "0,5", "8", "0,75", "0:20", "1,5"])
+
+
+def test_last_note_local_then_hq():
+    import server
+    st = {"months": {"2026-10": {"cells": {"P|T|2026-10-05": {"v": "1", "note": "alt"},
+                                            "P|T|2026-10-20": {"v": "2 Inline", "note": ""}}}}}
+    assert server.last_note(st, "P", "T", "2026-11-05")[1] == "Inline"
+    assert server.last_note(st, "P", "T", "2026-10-20")[1] == "alt"
+    assert server.last_note(st, "P", "X", "2026-11-05") is None

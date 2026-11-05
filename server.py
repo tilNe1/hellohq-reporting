@@ -275,6 +275,29 @@ def plan_month(month, data, config, baseline):
     return plan
 
 
+def last_note(st, project, task, before):
+    """Beschreibung der letzten Buchung (Datum < before) zu dieser Aufgabe: zuerst lokale Einträge
+    (alle Monate), sonst aus HQ eingelesene Reportings (Projektcode + Aufgabe). Liefert (Text, Datum, Quelle)."""
+    best = None   # (datum, text, quelle)
+    key = f"{project}|{task}|"
+    for m in st.get("months", {}).values():
+        for k, c in m.get("cells", {}).items():
+            if not k.startswith(key):
+                continue
+            iso = k[len(key):]
+            if iso >= before:
+                continue
+            text = c.get("note") or core.split_note(c.get("v", ""))[1]
+            if text and (best is None or iso > best[0]):
+                best = (iso, text, "lokal")
+    for f in DATA.glob("hq_*.json"):
+        for h in (read_json(f, {}) or {}).get("entries", []):
+            if h["date"] < before and code(h["project"]) == code(project) and h["task"] == task and h.get("description"):
+                if best is None or h["date"] > best[0]:
+                    best = (h["date"], h["description"], "HQ")
+    return best
+
+
 class Handler(BaseHTTPRequestHandler):
     server_version = "Monatsuebersicht/1.0"
 
@@ -332,6 +355,9 @@ class Handler(BaseHTTPRequestHandler):
                 st["config"] = {k: v for k, v in body.items() if k in core.DEFAULT_CONFIG}
                 write_json(DATA / "state.json", st)
                 return self._send(200, {"config": full_config(st)})
+            if path == "/api/lastnote":
+                r = last_note(st, body["project"], body["task"], body.get("before") or "9999-12-31")
+                return self._send(200, {"found": bool(r), "date": r and r[0], "note": r and r[1], "source": r and r[2]})
             if path == "/api/plan":
                 month = body["month"]
                 data = st["months"].get(month, {"days": {}, "rows": [], "cells": {}})
